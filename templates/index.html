@@ -1,12 +1,18 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Hệ thống điểm danh</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>Chào mừng đến với hệ thống điểm danh</h1>
-    <a href="{{ url_for('upload') }}">Tải lên ảnh khuôn mặt</a><br>
-    <a href="{{ url_for('take_attendance') }}">Điểm danh</a>
+    <h1>Face Recognition System</h1>
+    <nav>
+        <ul>
+            <li><a href="{{ url_for('upload') }}">Upload Face Images</a></li>
+            <li><a href="{{ url_for('take_attendance') }}">Take Attendance</a></li>
+        </ul>
+    </nav>
 </body>
 </html>

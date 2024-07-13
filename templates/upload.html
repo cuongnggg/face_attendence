@@ -1,20 +1,19 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Tải lên ảnh khuôn mặt</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Face Images</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>Tải lên ảnh khuôn mặt</h1>
-    <form action="{{ url_for('upload') }}" method="POST">
-    <label for="face_id">Mã số sinh viên:</label>
-    <input type="text" id="face_id" name="face_id" required>
-
-    <label for="name">Tên sinh viên:</label>
-    <input type="text" id="name" name="name" required>
-
-    <button type="submit">Tải lên</button>
-</form>
-
+    <h1>Upload Face Images</h1>
+    <form method="post" action="{{ url_for('upload') }}">
+        <label for="face_id">Enter Face ID:</label>
+        <input type="text" id="face_id" name="face_id" required>
+        <button type="submit">Start Upload</button>
+    </form>
+    <br>
+    <a href="{{ url_for('index') }}">Back to Home</a>
 </body>
 </html>

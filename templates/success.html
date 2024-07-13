@@ -1,16 +1,14 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Thành công</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Success</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>Thành công!</h1>
-    <p>ID Sinh viên: {{ face_id }}</p>
-    <p>Tên Sinh viên: {{ name }}</p>
-    <p>
-        Đã được thêm thành công !
-    </p>
-    <a href="{{ url_for('index') }}">Quay lại trang chủ</a>
+    <h1>Upload Successful</h1>
+    <p>Face images for <strong>{{ face_id }}</strong> have been successfully uploaded.</p>
+    <a href="{{ url_for('index') }}">Back to Home</a>
 </body>
 </html>

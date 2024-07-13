@@ -30,7 +30,11 @@ def extract_face_embeddings(image):
 
         embeddings = []
         for box in boxes:
-            face = transforms.functional.crop(image, *box.astype(int))
+            # Convert the box coordinates to integers
+            x1, y1, x2, y2 = map(int, box)
+
+            # Crop the face from the image
+            face = image.crop((x1, y1, x2, y2))
             face = transforms.functional.resize(face, (160, 160))
             face = transforms.functional.to_tensor(face)
             face = transforms.functional.normalize(face, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
@@ -45,6 +49,8 @@ def extract_face_embeddings(image):
     except Exception as e:
         print(f"Lỗi khi xử lý ảnh: {str(e)}")
         return [], []
+
+
 
 def load_embeddings():
     if os.path.exists(embeddings_file):
@@ -83,26 +89,27 @@ def upload():
                 faces, boxes = extract_face_embeddings(rgb_frame)
 
                 if faces:
-                    for i, face_img in enumerate(faces):
+                    for i, face_embedding in enumerate(faces):
                         x1, y1, x2, y2 = boxes[i].astype(int)
                         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-                        if y2 > y1 and x2 > x1:
-                            face_img_resized = rgb_frame[y1:y2, x1:x2]
-                            face_img_path = os.path.join(face_dir, f'face_{current_image_count}.jpg')
-                            cv2.imwrite(face_img_path, cv2.cvtColor(face_img_resized, cv2.COLOR_RGB2BGR))
-                            current_image_count += 1
-                            print(f'Đã lưu {face_img_path}')
+                        face_img_resized = rgb_frame[y1:y2, x1:x2]
+                        face_img_path = os.path.join(face_dir, f'face_{current_image_count}.jpg')
+                        cv2.imwrite(face_img_path, cv2.cvtColor(face_img_resized, cv2.COLOR_RGB2BGR))
+                        current_image_count += 1
+                        print(f'Đã lưu {face_img_path}')
 
-                            # Save the embedding
-                            embeddings_dict[face_img_path] = {'embedding': face_img, 'name': face_id}
-                            save_embeddings(embeddings_dict)
+                        embeddings_dict[face_img_path] = {
+                            'embedding': face_embedding.tolist(),
+                            'name': face_id
+                        }
+                        save_embeddings(embeddings_dict)
 
-                            cv2.putText(frame, f'Đã lưu: {current_image_count}/{app.config["MAX_IMAGES_PER_FACE"]}', (30, 30),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                        cv2.putText(frame, f'Đã lưu: {current_image_count}/{app.config["MAX_IMAGES_PER_FACE"]}', (30, 30),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
-                            if current_image_count >= app.config['MAX_IMAGES_PER_FACE']:
-                                break
+                        if current_image_count >= app.config['MAX_IMAGES_PER_FACE']:
+                            break
                 else:
                     print("Không phát hiện thấy khuôn mặt trong khung hình!")
 
@@ -122,6 +129,19 @@ def upload():
 
     return render_template('upload.html')
 
+import time
+
+# Global variable to track attendance
+attendance_records = {}
+ATTENDANCE_TIMEOUT = 60  # Time in seconds to allow re-attendance
+
+def record_attendance(name):
+    current_time = time.time()
+    if name not in attendance_records or (current_time - attendance_records[name]) > ATTENDANCE_TIMEOUT:
+        attendance_records[name] = current_time
+        return True
+    return False
+
 @app.route('/take_attendance', methods=['GET', 'POST'])
 def take_attendance():
     if request.method == 'POST':
@@ -131,19 +151,16 @@ def take_attendance():
 
         embeddings = []
         labels = []
-        ids = []
-        image_paths = []
-
         for image_path, data in embeddings_dict.items():
-            embeddings.append(data['embedding'])
+            embeddings.append(np.array(data['embedding']))
             labels.append(data['name'])
-            ids.append(image_path)
-            image_paths.append(image_path)
 
         cap = cv2.VideoCapture(0)
-        recognized_people = []
-        recognized_ids = set()  # Tập hợp để theo dõi các khuôn mặt đã được nhận diện
+        if not cap.isOpened():
+            print("Không thể mở camera.")
+            return "Không thể mở camera.", 500
 
+        recognized_people = []
         SIMILARITY_THRESHOLD = 0.7
 
         while True:
@@ -157,38 +174,32 @@ def take_attendance():
 
             if faces:
                 for i, face_embedding in enumerate(faces):
-                    if boxes is not None and i < len(boxes):
-                        box = boxes[i].astype(int)
-                        x1, y1, x2, y2 = box[0], box[1], box[2], box[3]
+                    if boxes is not None:
+                        x1, y1, x2, y2 = map(int, boxes[i])
                         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-                        similarities = cosine_similarity([face_embedding], embeddings)
-                        max_similarity_idx = np.argmax(similarities)
-                        max_similarity = similarities[0, max_similarity_idx]
+                    similarities = cosine_similarity([face_embedding], embeddings)
+                    max_similarity_idx = np.argmax(similarities)
+                    max_similarity = similarities[0, max_similarity_idx]
 
-                        if max_similarity > SIMILARITY_THRESHOLD:
-                            predicted_label = labels[max_similarity_idx]
-                            predicted_id = ids[max_similarity_idx]
-                            predicted_image_path = image_paths[max_similarity_idx]
+                    if max_similarity > SIMILARITY_THRESHOLD:
+                        predicted_label = labels[max_similarity_idx]
 
-                            # Nếu khuôn mặt chưa được nhận diện trong phiên này
-                            if predicted_id not in recognized_ids:
-                                recognized_ids.add(predicted_id)
-                                recognized_people.append({
-                                    'name': predicted_label,
-                                    'id': predicted_id,
-                                    'time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                                })
-                                # Hiển thị thông tin trên khung hình
-                                cv2.putText(frame, f'{predicted_label} - {max_similarity:.2f}',
-                                            (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                        # Record attendance only if it's not already recorded
+                        if record_attendance(predicted_label):
+                            recognized_people.append({
+                                'name': predicted_label,
+                                'time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            })
+                            cv2.putText(frame, f'{predicted_label} - {max_similarity:.2f}', (x1, y1 - 10),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
                         else:
-                            cv2.putText(frame, 'Người không xác định', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                            cv2.putText(frame, f'{predicted_label} - Already recorded', (x1, y1 - 10),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
+                    else:
+                        cv2.putText(frame, 'Unknown', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
 
-            else:
-                cv2.putText(frame, 'Không phát hiện khuôn mặt', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-
-            cv2.imshow('Điểm danh', frame)
+            cv2.imshow('Attendance', frame)
             if cv2.waitKey(30) & 0xFF == ord('q'):
                 break
 
@@ -198,6 +209,7 @@ def take_attendance():
         return render_template('attendance.html', attendance=recognized_people)
 
     return render_template('attendance.html')
+
 
 @app.route('/static/uploads/<path:filename>')
 def uploaded_file(filename):
