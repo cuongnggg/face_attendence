@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Tải lên ảnh khuôn mặt</title>
+</head>
+<body>
+    <h1>Tải lên ảnh khuôn mặt</h1>
+    <form action="{{ url_for('upload') }}" method="POST">
+    <label for="face_id">Mã số sinh viên:</label>
+    <input type="text" id="face_id" name="face_id" required>
+
+    <label for="name">Tên sinh viên:</label>
+    <input type="text" id="name" name="name" required>
+
+    <button type="submit">Tải lên</button>
+</form>
+
+</body>
+</html>

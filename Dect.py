@@ -20,40 +20,35 @@ while True:
         os.makedirs(face_dir)
 
     # Nhập số lượng ảnh tối đa muốn lưu
-    max_images_per_face = 100
+    max_images_per_face = 8
     current_image_count = 0
 
     while current_image_count < max_images_per_face:
         # Read a frame from the camera
         ret, frame = cap.read()
         if ret:
-            # Convert BGR image to RGB (MTCNN takes RGB image as input)
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            # Detect faces using MTCNN
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            #detect khuôn mặt
             boxes, _ = mtcnn.detect(rgb_frame)
 
             if boxes is not None and len(boxes) > 0:
-                # Lấy bounding box của khuôn mặt đầu tiên được phát hiện
-                x1, y1, x2, y2 = boxes[0].astype(int)
+                x1, y1, x2, y2 = boxes[0].astype(int) #bourding box
 
-                # Vẽ hộp giới hạn xung quanh khuôn mặt
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-                # Kiểm tra và lưu ảnh khuôn mặt
                 if y2 > y1 and x2 > x1:
                     face_img = rgb_frame[y1:y2, x1:x2]
                     face_img_resized = cv2.resize(face_img, (160, 160))
 
-                    # Đảm bảo ảnh khuôn mặt đã resize không rỗng
-                    if face_img_resized.size != 0:
+                    if face_img_resized.size != 0:#khuôn mặt sau khi khi resize không rỗng
                         # Lưu ảnh khuôn mặt vào thư mục dataset/face_id
                         face_img_path = os.path.join(face_dir, f'face_{current_image_count}.jpg')
                         cv2.imwrite(face_img_path, cv2.cvtColor(face_img_resized, cv2.COLOR_RGB2BGR))
                         current_image_count += 1
                         print(f'Saved {face_img_path}')
 
-                        # Hiển thị số lượng ảnh đã lưu
+                        # hiển thị số ảnh đã được lưu
                         cv2.putText(frame, f'Images saved: {current_image_count}/{max_images_per_face}', (30, 30),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 

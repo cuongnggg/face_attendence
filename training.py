@@ -11,14 +11,12 @@ from tqdm import tqdm
 # Cài đặt device để sử dụng GPU nếu có sẵn, nếu không thì sử dụng CPU
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-# Tải mô hình FaceNet pre-trained từ thư viện facenet-pytorch
 model = InceptionResnetV1(pretrained='vggface2').eval().to(device)
 
-# Tạo MTCNN để phát hiện và cắt ảnh khuôn mặt từ ảnh đầu vào
 mtcnn = MTCNN(keep_all=True, device=device)
 
 
-# Hàm để trích xuất embeddings từ ảnh khuôn mặt
+
 def extract_face_embeddings(image):
     try:
         # Chuyển đổi kích thước và chuẩn hóa ảnh

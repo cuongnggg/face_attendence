@@ -56,7 +56,6 @@ def extract_face_embeddings_from_camera(image):
         face = np.array(face)
         face = face / 255.0  # Chuẩn hóa về khoảng [0, 1]
         face = torch.FloatTensor(face).permute(2, 0, 1).unsqueeze(0).to(device)
-
         with torch.no_grad():
             embeddings = model(face).cpu().numpy()
 
@@ -86,12 +85,11 @@ while True:
             x, y, w, h = bbox
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
-        # So sánh embeddings của camera với các embeddings trong dữ liệu đã huấn luyện
-        similarities = cosine_similarity([embeddings_camera], embeddings)
+        similarities = cosine_similarity([embeddings_camera], embeddings) #tính độ tương đồng giữa emb từ cam và emb đã train
         max_similarity_idx = np.argmax(similarities)
         max_similarity = similarities[0, max_similarity_idx]
 
-        # Xác định người tương ứng với embeddings có độ tương đồng cao nhất
+        #gán nhãn nếu tìm thấy độ tương đồng cao nhaast
         predicted_label = labels[max_similarity_idx]
 
         # Tính toán độ chính xác
@@ -124,10 +122,12 @@ while True:
         break
 
 # In danh sách các người đã được nhận diện
-print("Danh sách người đã được nhận diện và điểm danh:")
-for person, time in recognized_people:
-    print(f"{person} - {time}")
+print("\nDanh sách người đã được nhận diện và điểm danh:")
+if recognized_people:
+    for person, time in recognized_people:
+        print(f"{person} - {time}")
+else:
+    print("Không có người nào được nhận diện và điểm danh.")
 
-# Giải phóng camera và đóng cửa sổ OpenCV
 cap.release()
 cv2.destroyAllWindows()
